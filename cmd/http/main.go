@@ -1,21 +1,40 @@
 package main
 
 import (
-	"crypto/rand"
-	"encoding/base64"
+	"context"
 	"encoding/json"
 	"io"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/rkorkosz/rocky/pkg/messaging"
 )
 
 func main() {
 	b := messaging.NewBroadcast()
 	defer b.Close()
-	log.Fatal(http.ListenAndServe(":8000", NewHandler(b)))
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+	srv := &http.Server{
+		Addr:    ":8000",
+		Handler: NewHandler(b),
+	}
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatal(err)
+		}
+	}()
+	<-ctx.Done()
+	ctxS, cancel := context.WithTimeout(context.Background(), 9*time.Second)
+	defer cancel()
+	err := srv.Shutdown(ctxS)
+	if err != nil && err != http.ErrServerClosed {
+		log.Fatal(err)
+	}
 }
 
 // Handler is http handler
@@ -59,15 +78,8 @@ func (m *Msg) Write(p []byte) (n int, err error) {
 // NewMsg creates a new message with id
 func NewMsg(typ string) Msg {
 	return Msg{
-		ID:        generateID(),
+		ID:        uuid.New().String(),
 		Type:      typ,
 		Timestamp: time.Now().UTC(),
 	}
-}
-
-func generateID() string {
-	b := make([]byte, 36)
-	rand.Read(b)
-	out := base64.RawStdEncoding.EncodeToString(b)
-	return out
 }

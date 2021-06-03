@@ -8,11 +8,13 @@ import (
 
 func TestBroadcast(t *testing.T) {
 	out := make(chan []byte, 1)
-	defer close(out)
 	go listenUDP(t, out)
 	b := NewBroadcast()
-	defer b.Close()
-	expected := []byte("tst")
+	t.Cleanup(func() {
+		close(out)
+		b.Close()
+	})
+	expected := []byte("test")
 	_, err := b.Write(expected)
 	if err != nil {
 		t.Error(err)
@@ -30,13 +32,16 @@ func listenUDP(t *testing.T, out chan []byte) {
 		t.Fatal(err)
 	}
 	defer pc.Close()
-	buf := make([]byte, 1024)
+	buf := make([]byte, 8)
 	for {
 		n, _, err := pc.ReadFrom(buf)
 		if err != nil {
 			t.Log(err)
 			return
 		}
-		out <- buf[:n]
+		if n > 0 {
+			out <- buf[:n]
+			return
+		}
 	}
 }
