@@ -10,7 +10,6 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/rkorkosz/rocky/pkg/messaging"
 )
 
@@ -39,7 +38,7 @@ func main() {
 
 // Handler is http handler
 type Handler struct {
-	b *messaging.Broadcast
+	b io.Writer
 }
 
 // NewHandler creates Handler instance
@@ -54,32 +53,9 @@ func (h *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer r.Body.Close()
-	m := NewMsg(r.URL.Path)
+	m := messaging.NewMsg(r.URL.Path)
 	io.Copy(&m, r.Body)
 	log.Println(m)
 	json.NewEncoder(h.b).Encode(m)
 	w.WriteHeader(202)
-}
-
-// Msg carries data
-type Msg struct {
-	ID        string          `json:"id"`
-	Type      string          `json:"type"`
-	Timestamp time.Time       `json:"timestamp"`
-	Data      json.RawMessage `json:"data"`
-}
-
-// Write implements io.Writer interface
-func (m *Msg) Write(p []byte) (n int, err error) {
-	m.Data = append(m.Data, p...)
-	return len(m.Data), nil
-}
-
-// NewMsg creates a new message with id
-func NewMsg(typ string) Msg {
-	return Msg{
-		ID:        uuid.New().String(),
-		Type:      typ,
-		Timestamp: time.Now().UTC(),
-	}
 }
