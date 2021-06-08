@@ -27,7 +27,6 @@ func (l *ListenUDP) Listen(callback func(Msg) error) {
 	for {
 		n, _, err := l.pc.ReadFrom(buf)
 		if err != nil {
-			log.Println(err)
 			continue
 		}
 		if n > 0 {

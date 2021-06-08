@@ -25,7 +25,7 @@ func TestListener(t *testing.T) {
 		t.Error(err)
 	}
 	m := <-out
-	if !bytes.Equal(expected, m) {
-		t.Errorf("want: %s, got: %s", string(expected), string(m))
+	if !bytes.Equal([]byte(`{"a": 1}`), m) {
+		t.Errorf("want: %s, got: %s", `{"a": 1}`, string(m))
 	}
 }
