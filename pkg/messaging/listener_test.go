@@ -2,6 +2,7 @@ package messaging
 
 import (
 	"bytes"
+	"encoding/json"
 	"testing"
 )
 
@@ -19,13 +20,18 @@ func TestListener(t *testing.T) {
 		b.Close()
 		close(out)
 	})
-	expected := []byte(`{"data": {"a": 1}}`)
-	_, err := b.Write(expected)
+	expected := []byte(`{"a":1}`)
+	msg := NewMsg("/test")
+	_, err := msg.Write(expected)
+	if err != nil {
+		t.Error(err)
+	}
+	err = json.NewEncoder(b).Encode(msg)
 	if err != nil {
 		t.Error(err)
 	}
 	m := <-out
-	if !bytes.Equal([]byte(`{"a": 1}`), m) {
-		t.Errorf("want: %s, got: %s", `{"a": 1}`, string(m))
+	if !bytes.Equal(expected, m) {
+		t.Errorf("want: %s, got: %s", string(expected), string(m))
 	}
 }
